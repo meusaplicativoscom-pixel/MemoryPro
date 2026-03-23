@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#000000">
+<meta charset="UTF-8">
+<title>🧠 Memory Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root {
+  --bg: #0f0f0f;
+  --card: #1c1c1c;
+  --accent: #6c5ce7;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: white;
+  text-align: center;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 15px;
+}
+
+button, input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  margin: 5px;
+  font-size: 16px;
+}
+
+button {
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+.info {
+  margin-top: 15px;
+  background: white;
+  color: black;
+  padding: 10px 20px;
+  border-radius: 12px;
+  display: inline-block;
+  font-weight: bold;
+}
+
+.game {
+  display: grid;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* CARTAS */
+.card {
+  width: 70px;
+  height: 70px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+  cursor: pointer;
+}
+
+.card.flipped {
+  transform: rotateY(180deg);
+}
+
+.card .front,
+.card .back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  font-size: 28px;
+}
+
+.card .front {
+  background: #fff;
+  color: #000;
+  transform: rotateY(180deg);
+}
+
+.card .back {
+  background: var(--card);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🧠 Memory Pro</h1>
+
+<div id="loginDiv">
+  <input type="text" id="playerName" placeholder="Nome">
+  <input type="password" id="playerPass" placeholder="Senha"><br>
+  <button onclick="login()">Entrar</button>
+  <button onclick="entrarVisitante()">Visitante</button>
+</div>
+
+<div id="gameDiv" style="display:none;">
+
+  <div>
+    <button onclick="setModo('single')">1 Jogador</button>
+    <button onclick="setModo('multi')">2 Jogadores</button>
+    <button onclick="startGame()">Reiniciar</button>
+  </div>
+
+  <div class="info">
+    ⏱️ Tempo: <span id="timer">0</span> |
+    🎯 Nível: <span id="nivel">1</span> |
+    🧩 Fase: <span id="fase">1</span>
+  </div>
+
+  <div id="game" class="game"></div>
+
+</div>
+
+</div>
+
+<script>
+
+// 🔊 SONS
+const somInicio = new Audio("https://www.soundjay.com/buttons/sounds/button-4.mp3");
+const somVirar = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
+const somVitoria = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
+const somErro = new Audio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
+
+// volume
+somInicio.volume = 0.5;
+somVirar.volume = 0.4;
+somVitoria.volume = 0.7;
+somErro.volume = 0.5;
+
+// 🔥 LIBERAR ÁUDIO (CORREÇÃO PRINCIPAL)
+let audioLiberado = false;
+
+function liberarAudio(){
+  if(audioLiberado) return;
+
+  const sons = [somInicio, somVirar, somVitoria, somErro];
+
+  sons.forEach(som => {
+    som.play().then(()=>{
+      som.pause();
+      som.currentTime = 0;
+    }).catch(()=>{});
+  });
+
+  audioLiberado = true;
+}
+
+// TEMAS
+const temas = {
+  frutas: ["🍎","🍌","🍇","🍓","🍍","🥝","🍉","🍒"],
+  pessoas: ["👨","👩","👧","👦","👴","👵","🧑","👮"],
+  animais: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼"]
+};
+
+// ESTADO
+let modo="single";
+let nivelAtual=1;
+let fase=1;
+
+let firstCard=null, secondCard=null, lock=false;
+let totalPairs=0, foundPairs=0;
+let tempo=0, intervalo;
+
+// SENHAS
+const senhasValidas=["0000","1111","2222","3333","4444"];
+let senhaVisitante="BemVindo";
+
+// LOGIN
+function login(){
+
+  liberarAudio(); // 🔊 ATIVA SOM
+
+  let nome=document.getElementById("playerName").value.trim();
+  let senha=document.getElementById("playerPass").value.trim();
+
+  if(!nome || !senha){
+    alert("Preencha os campos!");
+    return;
+  }
+
+  if(!senhasValidas.includes(senha) && senha!==senhaVisitante){
+    alert("Senha inválida!");
+    return;
+  }
+
+  document.getElementById("loginDiv").style.display="none";
+  document.getElementById("gameDiv").style.display="block";
+}
+
+// VISITANTE
+function entrarVisitante(){
+  document.getElementById("playerName").value="Visitante";
+  document.getElementById("playerPass").value=senhaVisitante;
+}
+
+// MODO
+function setModo(m){
+  liberarAudio(); // 🔊 GARANTE SOM
+  modo=m;
+  nivelAtual=1;
+  fase=1;
+  startGame();
+}
+
+// INICIAR
+function startGame(){
+
+  somInicio.currentTime = 0;
+  somInicio.play();
+
+  let size, theme;
+
+  if(nivelAtual===1){size=4;theme="frutas";}
+  if(nivelAtual===2){size=6;theme="pessoas";}
+  if(nivelAtual===3){size=8;theme="animais";}
+  if(nivelAtual===4){size=10;theme="misto";}
+
+  document.getElementById("nivel").innerText=nivelAtual;
+  document.getElementById("fase").innerText=fase;
+
+  let game=document.getElementById("game");
+  game.innerHTML="";
+  game.style.gridTemplateColumns=`repeat(${size},70px)`;
+
+  clearInterval(intervalo);
+
+  if(modo==="single"){
+    tempo=30+(nivelAtual*30)-(fase*5);
+    intervalo=setInterval(()=>{
+      tempo--;
+      document.getElementById("timer").innerText=tempo;
+      if(tempo<=0){
+        clearInterval(intervalo);
+        alert("Tempo acabou!");
+      }
+    },1000);
+  } else {
+    tempo=0;
+    intervalo=setInterval(()=>{
+      tempo++;
+      document.getElementById("timer").innerText=tempo;
+    },1000);
+  }
+
+  document.getElementById("timer").innerText=tempo;
+
+  totalPairs=(size*size)/2;
+
+  let base = theme==="misto"
+    ? [...temas.frutas,...temas.pessoas,...temas.animais]
+    : temas[theme];
+
+  let selected=shuffle([...base]).slice(0,totalPairs);
+  let cards=shuffle([...selected,...selected]);
+
+  foundPairs=0;
+  firstCard=null;
+  secondCard=null;
+  lock=false;
+
+  cards.forEach(symbol=>{
+    let card=document.createElement("div");
+    card.className="card";
+
+    card.innerHTML=`
+      <div class="front">${symbol}</div>
+      <div class="back"></div>
+    `;
+
+    card.onclick=()=>flipCard(card);
+    game.appendChild(card);
+  });
+}
+
+// VIRAR
+function flipCard(card){
+  if(lock || card.classList.contains("flipped")) return;
+
+  card.classList.add("flipped");
+
+  somVirar.currentTime = 0;
+  somVirar.play();
+
+  if(!firstCard){
+    firstCard=card;
+    return;
+  }
+
+  secondCard=card;
+
+  let s1=firstCard.querySelector(".front").innerText;
+  let s2=secondCard.querySelector(".front").innerText;
+
+  if(s1===s2){
+    foundPairs++;
+    firstCard=null;
+    secondCard=null;
+
+    if(foundPairs===totalPairs){
+      clearInterval(intervalo);
+
+      somVitoria.currentTime = 0;
+      somVitoria.play();
+
+      setTimeout(()=>{
+        alert(`Fase ${fase} concluída!`);
+
+        fase++;
+        if(fase>4){
+          fase=1;
+          nivelAtual++;
+          if(nivelAtual>4){
+            alert("🎉 Você zerou!");
+            nivelAtual=1;
+          }
+        }
+
+        startGame();
+      },300);
+    }
+
+  } else {
+    somErro.currentTime = 0;
+    somErro.play();
+
+    lock=true;
+
+    setTimeout(()=>{
+      firstCard.classList.remove("flipped");
+      secondCard.classList.remove("flipped");
+      firstCard=null;
+      secondCard=null;
+      lock=false;
+    },800);
+  }
+}
+
+// EMBARALHAR
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    let j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+</script>
+<button id="btnInstall" style="display:none;">📲 Instalar App</button>
+<script>
+let deferredPrompt;
+const btnInstall = document.getElementById("btnInstall");
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  btnInstall.style.display = "block"; // mostra o botão
+});
+
+btnInstall.addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log("Resultado da instalação:", outcome);
+    deferredPrompt = null;
+    btnInstall.style.display = "none";
+  }
+});
+
+// Registrar o Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+</body>
+</html>
