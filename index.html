@@ -234,9 +234,16 @@ function startGame(){
       tempo--;
       document.getElementById("timer").innerText=tempo;
       if(tempo<=0){
-        clearInterval(intervalo);
-        alert("Tempo acabou!");
-      }
+  clearInterval(intervalo);
+
+  setTimeout(()=>{
+    alert("⏰ Tempo acabou! Tente novamente.");
+
+    // Reinicia a mesma fase (sem alterar nível/fase)
+    startGame();
+
+  }, 200);
+}
     },1000);
   } else {
     tempo=0;
