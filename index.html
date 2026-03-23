@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#000000">
 <meta charset="UTF-8">
 <title>🧠 Memory Pro</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,13 +10,15 @@
   --bg: #0f0f0f;
   --card: #1c1c1c;
   --accent: #6c5ce7;
+  --text: #000;
+  --white: #ffffff;
 }
 
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
   background: var(--bg);
-  color: white;
+  color: var(--white);
   text-align: center;
 }
 
@@ -28,28 +28,42 @@ body {
   padding: 15px;
 }
 
-button, input {
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
+h1 {
+  margin: 10px 0;
+  font-weight: 600;
+}
+
+#loginDiv input {
   margin: 5px;
-  font-size: 16px;
 }
 
 button {
   background: var(--accent);
+  border: none;
+  padding: 10px 15px;
   color: white;
+  border-radius: 8px;
   cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  opacity: 0.8;
 }
 
 .info {
   margin-top: 15px;
-  background: white;
-  color: black;
+  display: inline-block;
+  background: var(--white);
+  color: var(--text);
   padding: 10px 20px;
   border-radius: 12px;
-  display: inline-block;
   font-weight: bold;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.controls {
+  margin: 15px;
 }
 
 .game {
@@ -59,7 +73,6 @@ button {
   margin-top: 20px;
 }
 
-/* CARTAS */
 .card {
   width: 70px;
   height: 70px;
@@ -87,7 +100,7 @@ button {
 }
 
 .card .front {
-  background: #fff;
+  background: #ffffff;
   color: #000;
   transform: rotateY(180deg);
 }
@@ -104,6 +117,7 @@ button {
 
 <h1>🧠 Memory Pro</h1>
 
+<!-- LOGIN -->
 <div id="loginDiv">
   <input type="text" id="playerName" placeholder="Nome">
   <input type="password" id="playerPass" placeholder="Senha"><br>
@@ -111,9 +125,10 @@ button {
   <button onclick="entrarVisitante()">Visitante</button>
 </div>
 
+<!-- JOGO -->
 <div id="gameDiv" style="display:none;">
 
-  <div>
+  <div class="controls">
     <button onclick="setModo('single')">1 Jogador</button>
     <button onclick="setModo('multi')">2 Jogadores</button>
     <button onclick="startGame()">Reiniciar</button>
@@ -133,42 +148,18 @@ button {
 
 <script>
 
-// 🔊 SONS
-const somInicio = new Audio("https://www.soundjay.com/buttons/sounds/button-4.mp3");
-const somVirar = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
-const somVitoria = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
-const somErro = new Audio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
-
-// volume
-somInicio.volume = 0.5;
-somVirar.volume = 0.4;
-somVitoria.volume = 0.7;
-somErro.volume = 0.5;
-
-// 🔥 LIBERAR ÁUDIO (CORREÇÃO PRINCIPAL)
-let audioLiberado = false;
-
-function liberarAudio(){
-  if(audioLiberado) return;
-
-  const sons = [somInicio, somVirar, somVitoria, somErro];
-
-  sons.forEach(som => {
-    som.play().then(()=>{
-      som.pause();
-      som.currentTime = 0;
-    }).catch(()=>{});
-  });
-
-  audioLiberado = true;
-}
-
-// TEMAS
+// TEMAS COM SUFICIENTES EMOJIS
 const temas = {
-  frutas: ["🍎","🍌","🍇","🍓","🍍","🥝","🍉","🍒"],
-  pessoas: ["👨","👩","👧","👦","👴","👵","🧑","👮"],
-  animais: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼"]
+  frutas: ["🍎","🍌","🍇","🍓","🍍","🥝","🍉","🍒","🥥","🍑","🍋","🍈","🍐","🍏","🥭","🍅","🥕","🌽"],
+  pessoas: ["👨","👩","👧","👦","👴","👵","🧑","👮","👷","💂","🧕","👨‍🍳","👩‍⚕️","🥊","👨‍🎓","🤾‍♂️","👨‍🏫","🏋️‍♀️"],
+  animais: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦"]
 };
+
+// SONS
+const somAcerto = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
+const somErro = new Audio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
+const somVitoria = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
+const somVirar = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
 
 // ESTADO
 let modo="single";
@@ -185,9 +176,6 @@ let senhaVisitante="BemVindo";
 
 // LOGIN
 function login(){
-
-  liberarAudio(); // 🔊 ATIVA SOM
-
   let nome=document.getElementById("playerName").value.trim();
   let senha=document.getElementById("playerPass").value.trim();
 
@@ -213,7 +201,6 @@ function entrarVisitante(){
 
 // MODO
 function setModo(m){
-  liberarAudio(); // 🔊 GARANTE SOM
   modo=m;
   nivelAtual=1;
   fase=1;
@@ -223,15 +210,12 @@ function setModo(m){
 // INICIAR
 function startGame(){
 
-  somInicio.currentTime = 0;
-  somInicio.play();
-
   let size, theme;
 
   if(nivelAtual===1){size=4;theme="frutas";}
   if(nivelAtual===2){size=6;theme="pessoas";}
   if(nivelAtual===3){size=8;theme="animais";}
-  if(nivelAtual===4){size=10;theme="misto";}
+  if(nivelAtual===4){size=10;theme="frutas";}
 
   document.getElementById("nivel").innerText=nivelAtual;
   document.getElementById("fase").innerText=fase;
@@ -262,14 +246,12 @@ function startGame(){
 
   document.getElementById("timer").innerText=tempo;
 
-  totalPairs=(size*size)/2;
+  // TOTAL DE PARES SEM REPETIÇÃO
+  let base = temas[theme];
+  totalPairs = Math.min((size*size)/2, base.length);
 
-  let base = theme==="misto"
-    ? [...temas.frutas,...temas.pessoas,...temas.animais]
-    : temas[theme];
-
-  let selected=shuffle([...base]).slice(0,totalPairs);
-  let cards=shuffle([...selected,...selected]);
+  let selected = shuffle([...base]).slice(0, totalPairs);
+  let cards = shuffle([...selected, ...selected]);
 
   foundPairs=0;
   firstCard=null;
@@ -290,13 +272,11 @@ function startGame(){
   });
 }
 
-// VIRAR
+// FLIP
 function flipCard(card){
   if(lock || card.classList.contains("flipped")) return;
 
   card.classList.add("flipped");
-
-  somVirar.currentTime = 0;
   somVirar.play();
 
   if(!firstCard){
@@ -310,14 +290,13 @@ function flipCard(card){
   let s2=secondCard.querySelector(".front").innerText;
 
   if(s1===s2){
+    somAcerto.play();
     foundPairs++;
     firstCard=null;
     secondCard=null;
 
     if(foundPairs===totalPairs){
       clearInterval(intervalo);
-
-      somVitoria.currentTime = 0;
       somVitoria.play();
 
       setTimeout(()=>{
@@ -338,9 +317,7 @@ function flipCard(card){
     }
 
   } else {
-    somErro.currentTime = 0;
     somErro.play();
-
     lock=true;
 
     setTimeout(()=>{
@@ -363,30 +340,6 @@ function shuffle(arr){
 }
 
 </script>
-<button id="btnInstall" style="display:none;">📲 Instalar App</button>
-<script>
-let deferredPrompt;
-const btnInstall = document.getElementById("btnInstall");
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  btnInstall.style.display = "block"; // mostra o botão
-});
 
-btnInstall.addEventListener("click", async () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log("Resultado da instalação:", outcome);
-    deferredPrompt = null;
-    btnInstall.style.display = "none";
-  }
-});
-
-// Registrar o Service Worker
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
-}
-</script>
 </body>
 </html>
