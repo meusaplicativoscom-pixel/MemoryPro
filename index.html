@@ -5,7 +5,7 @@
 <meta name="theme-color" content="#000000">
 <meta charset="UTF-8">
 <title>🧠 Memory Pro</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 <style>
 :root {
@@ -13,7 +13,7 @@
   --card: #1c1c1c;
   --accent: #6c5ce7;
   --text: #000;
-  --white: #ffffff;
+  --white: #fff;
 }
 
 body {
@@ -26,70 +26,49 @@ body {
 
 .container {
   max-width: 900px;
+  width: 100%;
   margin: auto;
   padding: 15px;
 }
 
-h1 {
-  margin: 10px 0;
-  font-weight: 600;
-}
-
-#loginDiv input {
-  margin: 5px;
-}
+h1 { margin: 10px 0; }
 
 button {
-  background: var(--accent);
+  background: linear-gradient(145deg, #7d6bff, #5a4de0);
   border: none;
   padding: 10px 15px;
   color: white;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: 0.2s;
-}
-
-button:hover {
-  opacity: 0.8;
-}
-
-.info {
-  margin-top: 15px;
-  display: inline-block;
-  background: var(--white);
-  color: var(--text);
-  padding: 10px 20px;
-  border-radius: 12px;
   font-weight: bold;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 0 #4b3fc1, 0 6px 10px rgba(0,0,0,0.4);
+  transition: all 0.15s ease;
 }
-
-.controls {
-  margin: 15px;
-}
+button:hover { transform: translateY(-2px); }
+button:active { transform: translateY(4px); box-shadow: 0 1px 0 #4b3fc1; }
 
 .game {
   display: grid;
-  justify-content: center;
-  gap: 10px;
+  gap: 8px;
   margin-top: 20px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .card {
-  width: 70px;
-  height: 70px;
+  width: 100%;
+  aspect-ratio: 1/1;
+  max-width: 70px;
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.5s;
   cursor: pointer;
 }
 
-.card.flipped {
-  transform: rotateY(180deg);
-}
+.card.flipped { transform: rotateY(180deg); }
 
-.card .front,
-.card .back {
+.card .front, .card .back {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -101,22 +80,21 @@ button:hover {
   font-size: 28px;
 }
 
-.card .front {
-  background: #ffffff;
-  color: #000;
-  transform: rotateY(180deg);
-}
+.front { background: #fff; color: #000; transform: rotateY(180deg);}
+.back { background: var(--card); }
 
-.card .back {
-  background: var(--card);
+.card.match {
+  animation: brilho 0.5s;
+  box-shadow: 0 0 15px #00ffcc;
 }
+@keyframes brilho { 50% { transform: scale(1.1); } }
+
+@media(max-width:600px){ .card{max-width:60px;} }
 </style>
 </head>
 
 <body>
-
 <div class="container">
-
 <h1>🧠 Memory Pro</h1>
 
 <!-- LOGIN -->
@@ -129,249 +107,163 @@ button:hover {
 
 <!-- JOGO -->
 <div id="gameDiv" style="display:none;">
-
   <div class="controls">
     <button onclick="salvarESair()">💾 Salvar e Sair</button>
     <button onclick="setModo('single')">1 Jogador</button>
     <button onclick="setModo('multi')">2 Jogadores</button>
+    <button onclick="toggleDificuldade()">🔥 Difícil</button>
     <button onclick="startGame()">Reiniciar</button>
+    <br><br>
+    <select id="temaEscolhido">
+      <option value="">🎲 Tema aleatório</option>
+      <option value="frutas">🍎 Frutas</option>
+      <option value="esportes">⚽ Esportes</option>
+      <option value="emocoes">😀 Emoções</option>
+      <option value="comida">🍔 Comida</option>
+      <option value="animais">🐶 Animais</option>
+    </select>
   </div>
 
   <div class="info">
-    ⏱️ Tempo: <span id="timer">0</span> |
-    🎯 Nível: <span id="nivel">1</span> |
-    🧩 Fase: <span id="fase">1</span>
+    ⏱️ <span id="timer">0</span> |
+    🎯 <span id="nivel">1</span> |
+    🧩 <span id="fase">1</span>
   </div>
 
   <div id="game" class="game"></div>
-
 </div>
-
 </div>
 
 <script>
-
-// ===== SAVE AUTO LOAD (CORRIGIDO) =====
-window.onload = () => {
-  let save = localStorage.getItem("memoryProSave");
-
-  if(save){
-    let dados = JSON.parse(save);
-
-    nivelAtual = dados.nivel;
-    fase = dados.fase;
-    modo = dados.modo;
-
-    document.getElementById("loginDiv").style.display="none";
-    document.getElementById("gameDiv").style.display="block";
-
-    startGame();
-  }
-};
-
-// TEMAS
+// ===== TEMAS =====
 const temas = {
-  frutas: ["🍎","🍌","🍇","🍓","🍍","🥝","🍉","🍒","🥥","🍑","🍋","🍈","🍐","🍏","🥭","🍅","🥕","🌽"],
-  pessoas: ["🧑‍🚒","👩","👧","🧑‍🦽","👴","👵","🧑‍🚀","👮","👷","💂","🧕","👨‍🍳","👩‍⚕️","🥊","👨‍🎓","🤾‍♂️","👨‍🏫","🏋️‍♀️"],
-  animais: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦"]
+  frutas:["🍎","🍌","🍇","🍓","🍍","🥝","🍉","🍒","🥥","🍑"],
+  animais:["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯"],
+  comida:["🍕","🍔","🍟","🌭","🍿","🍩","🍪","🎂","🍫","🍦"],
+  emocoes:["😀","😃","😄","😁","😆","😂","😍","😎","🤯","🥳"],
+  esportes:["⚽","🏀","🏈","🎾","🏐","🥊","🏊‍♂️","🚴‍♂️","🏋️‍♀️","🏄‍♂️"]
 };
 
-// SONS
-const somAcerto = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
-const somErro = new Audio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
-const somVitoria = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
-const somVirar = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
-
-// ESTADO
-let modo="single";
-let nivelAtual=1;
-let fase=1;
-
+// ===== ESTADO =====
+let modo="single", nivelAtual=1, fase=1, modoDificil=false;
 let firstCard=null, secondCard=null, lock=false;
 let totalPairs=0, foundPairs=0;
 let tempo=0, intervalo;
 
-// SENHAS
-const senhasValidas=["0000","1111","2222","3333","4444"];
-let senhaVisitante="BemVindo";
+// ===== LOGIN =====
+function login(){ document.getElementById("loginDiv").style.display="none"; document.getElementById("gameDiv").style.display="block"; }
+function entrarVisitante(){ login(); }
 
-// LOGIN
-function login(){
-  let nome=document.getElementById("playerName").value.trim();
-  let senha=document.getElementById("playerPass").value.trim();
+// ===== DIFICULDADE =====
+function toggleDificuldade(){ modoDificil=!modoDificil; alert(modoDificil?"🔥 Difícil ON":"🙂 Normal"); }
 
-  if(!nome || !senha){
-    alert("Preencha os campos!");
-    return;
-  }
+// ===== MODO =====
+function setModo(m){ modo=m; nivelAtual=1; fase=1; startGame(); }
 
-  if(!senhasValidas.includes(senha) && senha!==senhaVisitante){
-    alert("Senha inválida!");
-    return;
-  }
-
-  document.getElementById("loginDiv").style.display="none";
-  document.getElementById("gameDiv").style.display="block";
-}
-
-// VISITANTE
-function entrarVisitante(){
-  document.getElementById("playerName").value="Visitante";
-  document.getElementById("playerPass").value=senhaVisitante;
-}
-
-// SALVAR (CORRIGIDO - AGORA GLOBAL)
+// ===== SALVAR =====
 function salvarESair(){
-  const dados = {
-    nivel: nivelAtual,
-    fase: fase,
-    tempo: tempo,
-    modo: modo
-  };
-
-  localStorage.setItem("memoryProSave", JSON.stringify(dados));
-
+  const dados={nivel:nivelAtual,fase:fase,tempo:tempo,modo:modo};
+  localStorage.setItem("memoryProSave",JSON.stringify(dados));
   alert("💾 Progresso salvo!");
-
   document.getElementById("gameDiv").style.display="none";
   document.getElementById("loginDiv").style.display="block";
 }
 
-// MODO
-function setModo(m){
-  modo=m;
-  nivelAtual=1;
-  fase=1;
-  startGame();
-}
-
-// INICIAR
+// ===== INICIAR JOGO =====
 function startGame(){
-
-  let size, theme;
-
-  if(nivelAtual===1){size=4;theme="frutas";}
-  if(nivelAtual===2){size=6;theme="pessoas";}
-  if(nivelAtual===3){size=8;theme="animais";}
-  if(nivelAtual===4){size=10;theme="frutas";}
+  let size;
+  if(nivelAtual===1){size=4;}
+  if(nivelAtual===2){size=6;}
+  if(nivelAtual===3){size=8;}
+  if(nivelAtual===4){size=8;}
 
   document.getElementById("nivel").innerText=nivelAtual;
   document.getElementById("fase").innerText=fase;
 
   let game=document.getElementById("game");
   game.innerHTML="";
-  game.style.gridTemplateColumns=`repeat(${size},70px)`;
+  game.style.gridTemplateColumns=`repeat(${size},1fr)`;
 
   clearInterval(intervalo);
-
-  if(modo==="single"){
-    tempo=30+(nivelAtual*30)-(fase*5);
-    intervalo=setInterval(()=>{
-      if(tempo>0){
-        tempo--;
-        document.getElementById("timer").innerText=tempo;
-      } else {
-        clearInterval(intervalo);
-        setTimeout(()=>{
-          alert("⏰ Tempo acabou! Tente novamente.");
-          startGame();
-        },200);
-      }
-    },1000);
-  } else {
-    tempo=0;
-    intervalo=setInterval(()=>{
-      tempo++;
-      document.getElementById("timer").innerText=tempo;
-    },1000);
-  }
-
+  tempo=30+(nivelAtual*30)-(fase*5);
+  if(modoDificil) tempo=Math.floor(tempo*0.6);
   document.getElementById("timer").innerText=tempo;
 
-  let base = temas[theme];
-  totalPairs = Math.min((size*size)/2, base.length);
+  intervalo=setInterval(()=>{
+    if(tempo>0){ tempo--; document.getElementById("timer").innerText=tempo; }
+    else {
+      clearInterval(intervalo);
 
-  let selected = shuffle([...base]).slice(0, totalPairs);
-  let cards = shuffle([...selected, ...selected]);
+      // 🔄 vira todas as cartas de volta
+      document.querySelectorAll(".card").forEach(c=>c.classList.remove("flipped"));
+      firstCard=null; secondCard=null; lock=false;
 
-  foundPairs=0;
-  firstCard=null;
-  secondCard=null;
-  lock=false;
+      setTimeout(()=>{
+        let continuar=confirm("⏰ Tempo acabou!\nOK = Continuar\nCancelar = Parar");
+        if(continuar){ startGame(); }
+        else {
+          document.getElementById("gameDiv").style.display="none";
+          document.getElementById("loginDiv").style.display="block";
+        }
+      },300);
+    }
+  },1000);
+
+  // ===== SELEÇÃO DE CARTAS =====
+  let temaSelecionado=document.getElementById("temaEscolhido").value;
+  let base;
+  if(temaSelecionado){ base=temas[temaSelecionado]; }
+  else { base=[]; Object.values(temas).forEach(arr=>base.push(...arr)); }
+
+  totalPairs=Math.min((size*size)/2, base.length);
+  let selected=shuffle([...base]).slice(0,totalPairs);
+  let cards=shuffle([...selected,...selected]);
+
+  foundPairs=0; firstCard=null; secondCard=null; lock=false;
 
   cards.forEach(symbol=>{
     let card=document.createElement("div");
     card.className="card";
-
-    card.innerHTML=`
-      <div class="front">${symbol}</div>
-      <div class="back"></div>
-    `;
-
+    card.innerHTML=`<div class="front">${symbol}</div><div class="back"></div>`;
     card.onclick=()=>flipCard(card);
     game.appendChild(card);
   });
 }
 
-// FLIP
+// ===== VIRAR CARTA =====
 function flipCard(card){
-  if(lock || card.classList.contains("flipped")) return;
-
+  if(lock||card.classList.contains("flipped")) return;
   card.classList.add("flipped");
-  somVirar.play();
 
-  if(!firstCard){
-    firstCard=card;
-    return;
-  }
-
+  if(!firstCard){firstCard=card; return;}
   secondCard=card;
 
-  let s1=firstCard.querySelector(".front").innerText;
-  let s2=secondCard.querySelector(".front").innerText;
+  let s1=firstCard.innerText, s2=secondCard.innerText;
 
   if(s1===s2){
-    somAcerto.play();
-    foundPairs++;
-    firstCard=null;
-    secondCard=null;
+    firstCard.classList.add("match");
+    secondCard.classList.add("match");
+    foundPairs++; firstCard=null; secondCard=null;
 
     if(foundPairs===totalPairs){
       clearInterval(intervalo);
-      somVitoria.play();
-
       setTimeout(()=>{
-        alert(`Fase ${fase} concluída!`);
-
-        fase++;
-        if(fase>4){
-          fase=1;
-          nivelAtual++;
-          if(nivelAtual>4){
-            alert("🎉 Você zerou!");
-            nivelAtual=1;
-          }
-        }
-
+        fase++; if(fase>4){fase=1;nivelAtual++;}
+        if(nivelAtual>4){alert("🎉 Zerou!"); nivelAtual=1;}
         startGame();
-      },300);
+      },500);
     }
-
   } else {
-    somErro.play();
     lock=true;
-
     setTimeout(()=>{
       firstCard.classList.remove("flipped");
       secondCard.classList.remove("flipped");
-      firstCard=null;
-      secondCard=null;
-      lock=false;
+      firstCard=null; secondCard=null; lock=false;
     },800);
   }
 }
 
-// EMBARALHAR
+// ===== EMBARALHAR =====
 function shuffle(arr){
   for(let i=arr.length-1;i>0;i--){
     let j=Math.floor(Math.random()*(i+1));
@@ -380,7 +272,42 @@ function shuffle(arr){
   return arr;
 }
 
+// ===== AUTOLOAD =====
+window.onload=()=>{
+  let save=localStorage.getItem("memoryProSave");
+  if(save){
+    let dados=JSON.parse(save);
+    nivelAtual=dados.nivel; fase=dados.fase; modo=dados.modo;
+    document.getElementById("loginDiv").style.display="none";
+    document.getElementById("gameDiv").style.display="block";
+    startGame();
+  }
+};
 </script>
+<button id="btnInstall" style="display:none;">📲 Instalar App</button>
+<script>
+let deferredPrompt;
+const btnInstall = document.getElementById("btnInstall");
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  btnInstall.style.display = "block"; // mostra o botão
+});
 
+btnInstall.addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log("Resultado da instalação:", outcome);
+    deferredPrompt = null;
+    btnInstall.style.display = "none";
+  }
+});
+
+// Registrar o Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
 </body>
 </html>
