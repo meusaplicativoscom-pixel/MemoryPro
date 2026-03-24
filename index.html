@@ -1,11 +1,31 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>projeto</title>
+<style>
+body{
+  background:#f0f0f0;
+  text-align:center;
+}
+h1{
+  color:blue;
+}
+  
+</style>
+</head>
+<body>
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🧠 Memory Pro</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#000000">
-<meta charset="UTF-8">
-<title>🧠 Memory Pro</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 <style>
 :root {
@@ -92,7 +112,6 @@ button:active { transform: translateY(4px); box-shadow: 0 1px 0 #4b3fc1; }
 @media(max-width:600px){ .card{max-width:60px;} }
 </style>
 </head>
-
 <body>
 <div class="container">
 <h1>🧠 Memory Pro</h1>
@@ -169,32 +188,15 @@ function salvarESair(){
   document.getElementById("loginDiv").style.display="block";
 }
 
-// ===== INICIAR JOGO =====
-function startGame(){
-  let size;
-  if(nivelAtual===1){size=4;}
-  if(nivelAtual===2){size=6;}
-  if(nivelAtual===3){size=8;}
-  if(nivelAtual===4){size=8;}
-
-  document.getElementById("nivel").innerText=nivelAtual;
-  document.getElementById("fase").innerText=fase;
-
-  let game=document.getElementById("game");
-  game.innerHTML="";
-  game.style.gridTemplateColumns=`repeat(${size},1fr)`;
-
+// ===== INICIAR TEMPO =====
+function iniciarTempo(){
   clearInterval(intervalo);
-  tempo=30+(nivelAtual*30)-(fase*5);
-  if(modoDificil) tempo=Math.floor(tempo*0.6);
-  document.getElementById("timer").innerText=tempo;
-
   intervalo=setInterval(()=>{
-    if(tempo>0){ tempo--; document.getElementById("timer").innerText=tempo; }
-    else {
+    if(tempo>0){
+      tempo--;
+      document.getElementById("timer").innerText=tempo;
+    } else {
       clearInterval(intervalo);
-
-      // 🔄 vira todas as cartas de volta
       document.querySelectorAll(".card").forEach(c=>c.classList.remove("flipped"));
       firstCard=null; secondCard=null; lock=false;
 
@@ -208,26 +210,55 @@ function startGame(){
       },300);
     }
   },1000);
+}
 
-  // ===== SELEÇÃO DE CARTAS =====
-  let temaSelecionado=document.getElementById("temaEscolhido").value;
-  let base;
-  if(temaSelecionado){ base=temas[temaSelecionado]; }
-  else { base=[]; Object.values(temas).forEach(arr=>base.push(...arr)); }
+// ===== INICIAR JOGO =====
+function startGame() {
+  let size = (nivelAtual===1?4:(nivelAtual===2?6:8));
+  document.getElementById("nivel").innerText = nivelAtual;
+  document.getElementById("fase").innerText = fase;
 
-  totalPairs=Math.min((size*size)/2, base.length);
-  let selected=shuffle([...base]).slice(0,totalPairs);
-  let cards=shuffle([...selected,...selected]);
+  const game = document.getElementById("game");
+  game.innerHTML = "";
+  game.style.gridTemplateColumns = `repeat(${size},1fr)`;
+
+  clearInterval(intervalo);
+  tempo = 30 + (nivelAtual*30) - (fase*5);
+  if(modoDificil) tempo = Math.floor(tempo*0.6);
+  document.getElementById("timer").innerText = tempo;
+
+  // ===== SELEÇÃO DE CARTAS SEM REPETIÇÃO =====
+  const temaSelecionado = document.getElementById("temaEscolhido").value;
+  let base = temaSelecionado ? temas[temaSelecionado] : [...new Set(Object.values(temas).flat())];
+
+  totalPairs = Math.min(Math.floor((size*size)/2), base.length); // garante que não vai pegar mais que existe
+
+  let selected = shuffle([...base]).slice(0,totalPairs);
+  let cards = shuffle([...selected, ...selected]); // cada emoji aparece exatamente 2 vezes
 
   foundPairs=0; firstCard=null; secondCard=null; lock=false;
 
   cards.forEach(symbol=>{
-    let card=document.createElement("div");
-    card.className="card";
-    card.innerHTML=`<div class="front">${symbol}</div><div class="back"></div>`;
-    card.onclick=()=>flipCard(card);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<div class="front">${symbol}</div><div class="back"></div>`;
+    card.onclick = () => flipCard(card);
     game.appendChild(card);
   });
+
+  // Nível 2 mostra as cartas viradas por 2s
+  if(nivelAtual===2){
+    const todas = document.querySelectorAll(".card");
+    todas.forEach(c => c.classList.add("flipped"));
+    lock=true;
+    setTimeout(()=>{
+      todas.forEach(c => c.classList.remove("flipped"));
+      lock=false;
+      iniciarTempo();
+    },2000);
+  } else {
+    iniciarTempo();
+  }
 }
 
 // ===== VIRAR CARTA =====
@@ -235,7 +266,7 @@ function flipCard(card){
   if(lock||card.classList.contains("flipped")) return;
   card.classList.add("flipped");
 
-  if(!firstCard){firstCard=card; return;}
+  if(!firstCard){ firstCard=card; return; }
   secondCard=card;
 
   let s1=firstCard.innerText, s2=secondCard.innerText;
@@ -283,31 +314,43 @@ window.onload=()=>{
     startGame();
   }
 };
-</script>
-<button id="btnInstall" style="display:none;">📲 Instalar App</button>
-<script>
+
+// ===== PWA INSTALL =====
 let deferredPrompt;
-const btnInstall = document.getElementById("btnInstall");
+const btnInstall = document.createElement("button");
+btnInstall.id = "btnInstall";
+btnInstall.style.display="none";
+btnInstall.innerText = "📲 Instalar App";
+document.body.appendChild(btnInstall);
+
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  btnInstall.style.display = "block"; // mostra o botão
+  btnInstall.style.display = "block";
 });
 
 btnInstall.addEventListener("click", async () => {
-  if (deferredPrompt) {
+  if(deferredPrompt){
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     console.log("Resultado da instalação:", outcome);
     deferredPrompt = null;
-    btnInstall.style.display = "none";
+    btnInstall.style.display="none";
   }
 });
 
-// Registrar o Service Worker
-if ("serviceWorker" in navigator) {
+if("serviceWorker" in navigator){
   navigator.serviceWorker.register("sw.js");
 }
 </script>
 </body>
 </html>
+
+<script>
+console.log("Funcionando!");
+  
+</script>
+
+</body>
+</html>
+  
