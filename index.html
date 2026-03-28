@@ -3,6 +3,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#000000">
 <meta charset="UTF-8">
 <title>projeto</title>
 <style>
@@ -24,9 +26,6 @@ h1{
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>🧠 Memory Pro</title>
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#000000">
-
 <style>
 :root {
   --bg: #0f0f0f;
@@ -350,7 +349,16 @@ if("serviceWorker" in navigator){
 console.log("Funcionando!");
   
 </script>
-
+<button id="btnInstall" style="display:none;">📲 Instalar App</button>
+<script>
+let deferredPrompt;
+const btnInstall = document.getElementById("btnInstall");
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  btnInstall.style.display = "block"; // mostra o botão
+});
+</script>
 </body>
 </html>
   
