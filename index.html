@@ -346,5 +346,55 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
+<!-- Botão Flutuante de Compartilhar -->
+<style>
+  #botaoCompartilhar {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 40%;
+    width: 30px;
+    height: 30px;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    z-index: 9999;
+    transition: transform 0.2s;
+  }
+  #botaoCompartilhar:hover {
+    transform: scale(1.1);
+  }
+</style>
+
+<button id="botaoCompartilhar" title="Compartilhar">🔗</button>
+
+<script>
+  const botao = document.getElementById('botaoCompartilhar');
+  
+  botao.addEventListener('click', async () => {
+    const url = window.location.href;
+    const title = document.title;
+
+    if (navigator.share) {
+      // Usando API de Compartilhamento se suportada
+      try {
+        await navigator.share({ title, url });
+      } catch (err) {
+        console.log('Compartilhamento cancelado ou falhou', err);
+      }
+    } else {
+      // Fallback: copia o link
+      try {
+        await navigator.clipboard.writeText(url);
+        alert('Link copiado para a área de transferência!');
+      } catch (err) {
+        prompt('Copie este link:', url);
+      }
+    }
+  });
+</script>
 </body>
 </html>
