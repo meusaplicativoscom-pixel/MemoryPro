@@ -1,55 +1,28 @@
-
-
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#000000">
 <meta charset="UTF-8">
-<title>projeto</title>
-<style>
-body{
-  background:#f0f0f0;
-  text-align:center;
-}
-h1{
-  color:blue;
-}
-  
-</style>
-</head>
-<body>
-
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🧠 Memory Pro</title>
 <style>
 :root {
   --bg: #0f0f0f;
   --card: #1c1c1c;
   --accent: #6c5ce7;
-  --text: #000;
-  --white: #fff;
+  --text: #fff;
 }
 
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
   background: var(--bg);
-  color: var(--white);
+  color: var(--text);
   text-align: center;
 }
 
-.container {
-  max-width: 900px;
-  width: 100%;
-  margin: auto;
-  padding: 15px;
-}
-
+.container { max-width: 900px; margin:auto; padding:15px; }
 h1 { margin: 10px 0; }
 
 button {
@@ -102,12 +75,8 @@ button:active { transform: translateY(4px); box-shadow: 0 1px 0 #4b3fc1; }
 .front { background: #fff; color: #000; transform: rotateY(180deg);}
 .back { background: var(--card); }
 
-.card.match {
-  animation: brilho 0.5s;
-  box-shadow: 0 0 15px #00ffcc;
-}
-@keyframes brilho { 50% { transform: scale(1.1); } }
-
+.card.match { animation: brilho 0.5s; box-shadow:0 0 15px #00ffcc; }
+@keyframes brilho {50% { transform: scale(1.1); }}
 @media(max-width:600px){ .card{max-width:60px;} }
 </style>
 </head>
@@ -118,7 +87,7 @@ button:active { transform: translateY(4px); box-shadow: 0 1px 0 #4b3fc1; }
 <!-- LOGIN -->
 <div id="loginDiv">
   <input type="text" id="playerName" placeholder="Nome">
-  <input type="password" id="playerPass" placeholder="Senha"><br>
+  <input type="password" id="playerPass" placeholder="Senha"><br><br>
   <button onclick="login()">Entrar</button>
   <button onclick="entrarVisitante()">Visitante</button>
 </div>
@@ -127,27 +96,11 @@ button:active { transform: translateY(4px); box-shadow: 0 1px 0 #4b3fc1; }
 <div id="gameDiv" style="display:none;">
   <div class="controls">
     <button onclick="salvarESair()">💾 Salvar e Sair</button>
-    <button onclick="setModo('single')">1 Jogador</button>
-    <button onclick="setModo('multi')">2 Jogadores</button>
     <button onclick="toggleDificuldade()">🔥 Difícil</button>
     <button onclick="startGame()">Reiniciar</button>
     <br><br>
-    <select id="temaEscolhido">
-      <option value="">🎲 Tema aleatório</option>
-      <option value="frutas">🍎 Frutas</option>
-      <option value="esportes">⚽ Esportes</option>
-      <option value="emocoes">😀 Emoções</option>
-      <option value="comida">🍔 Comida</option>
-      <option value="animais">🐶 Animais</option>
-    </select>
+    ⏱️ <span id="timer">0</span> | 🎯 <span id="nivel">1</span> | 🧩 Fase <span id="fase">1</span> | ⏳ Chances: <span id="chances">3</span>
   </div>
-
-  <div class="info">
-    ⏱️ <span id="timer">0</span> |
-    🎯 <span id="nivel">1</span> |
-    🧩 <span id="fase">1</span>
-  </div>
-
   <div id="game" class="game"></div>
 </div>
 </div>
@@ -163,101 +116,101 @@ const temas = {
 };
 
 // ===== ESTADO =====
-let modo="single", nivelAtual=1, fase=1, modoDificil=false;
+let nivelAtual = 1;
+let faseAtual = 0;
+let errosTempo = 0;
 let firstCard=null, secondCard=null, lock=false;
 let totalPairs=0, foundPairs=0;
 let tempo=0, intervalo;
+let modoDificil=false;
+const ordemFases = ["frutas","esportes","emocoes","comida","animais","aleatorio"];
+const tempoPorFase = 55;
 
 // ===== LOGIN =====
-function login(){ document.getElementById("loginDiv").style.display="none"; document.getElementById("gameDiv").style.display="block"; }
+function login(){ 
+  document.getElementById("loginDiv").style.display="none"; 
+  document.getElementById("gameDiv").style.display="block"; 
+  startGame();
+}
 function entrarVisitante(){ login(); }
-
-// ===== DIFICULDADE =====
 function toggleDificuldade(){ modoDificil=!modoDificil; alert(modoDificil?"🔥 Difícil ON":"🙂 Normal"); }
-
-// ===== MODO =====
-function setModo(m){ modo=m; nivelAtual=1; fase=1; startGame(); }
 
 // ===== SALVAR =====
 function salvarESair(){
-  const dados={nivel:nivelAtual,fase:fase,tempo:tempo,modo:modo};
+  if(errosTempo>=3){
+    alert("Não pode salvar, você perdeu todas as chances de tempo! Reiniciando...");
+    reiniciarJogo();
+    return;
+  }
+  const dados={nivel:nivelAtual,fase:faseAtual,tempo:tempo,errosTempo:errosTempo};
   localStorage.setItem("memoryProSave",JSON.stringify(dados));
   alert("💾 Progresso salvo!");
   document.getElementById("gameDiv").style.display="none";
   document.getElementById("loginDiv").style.display="block";
 }
 
+// ===== REINICIAR JOGO =====
+function reiniciarJogo(){
+  errosTempo=0; faseAtual=0; nivelAtual=1;
+  document.getElementById("chances").innerText=3;
+  startGame();
+}
+
 // ===== INICIAR TEMPO =====
 function iniciarTempo(){
   clearInterval(intervalo);
-  intervalo=setInterval(()=>{
+  intervalo = setInterval(() => {
     if(tempo>0){
       tempo--;
-      document.getElementById("timer").innerText=tempo;
+      document.getElementById("timer").innerText = tempo;
     } else {
       clearInterval(intervalo);
-      document.querySelectorAll(".card").forEach(c=>c.classList.remove("flipped"));
-      firstCard=null; secondCard=null; lock=false;
-
-      setTimeout(()=>{
-        let continuar=confirm("⏰ Tempo acabou!\nOK = Continuar\nCancelar = Parar");
-        if(continuar){ startGame(); }
-        else {
-          document.getElementById("gameDiv").style.display="none";
-          document.getElementById("loginDiv").style.display="block";
-        }
-      },300);
+      errosTempo++;
+      document.getElementById("chances").innerText = 3-errosTempo;
+      if(errosTempo>=3){
+        alert("⏰ Você não completou a fase no tempo 3 vezes! Jogo reiniciado.");
+        reiniciarJogo();
+      } else {
+        alert(`⏰ Tempo esgotado! Você tem mais ${3-errosTempo} chance(s)`);
+        startGame();
+      }
     }
   },1000);
 }
 
 // ===== INICIAR JOGO =====
-function startGame() {
-  let size = (nivelAtual===1?4:(nivelAtual===2?6:8));
-  document.getElementById("nivel").innerText = nivelAtual;
-  document.getElementById("fase").innerText = fase;
+function startGame(){
+  if(nivelAtual===2){ startNivel2(); return; } // Nível 2 matemático
 
-  const game = document.getElementById("game");
-  game.innerHTML = "";
-  game.style.gridTemplateColumns = `repeat(${size},1fr)`;
+  // Seleção de tema
+  let temaAtual = faseAtual<ordemFases.length-1 ? ordemFases[faseAtual] : null;
+  let base = temaAtual==="aleatorio" || !temaAtual ? shuffle([...new Set(Object.values(temas).flat())]) : temas[temaAtual];
 
-  clearInterval(intervalo);
-  tempo = 30 + (nivelAtual*30) - (fase*5);
-  if(modoDificil) tempo = Math.floor(tempo*0.6);
-  document.getElementById("timer").innerText = tempo;
-
-  // ===== SELEÇÃO DE CARTAS SEM REPETIÇÃO =====
-  const temaSelecionado = document.getElementById("temaEscolhido").value;
-  let base = temaSelecionado ? temas[temaSelecionado] : [...new Set(Object.values(temas).flat())];
-
-  totalPairs = Math.min(Math.floor((size*size)/2), base.length); // garante que não vai pegar mais que existe
-
-  let selected = shuffle([...base]).slice(0,totalPairs);
-  let cards = shuffle([...selected, ...selected]); // cada emoji aparece exatamente 2 vezes
+  let size=4;
+  totalPairs=Math.min(Math.floor((size*size)/2),base.length);
+  let selected=shuffle([...base]).slice(0,totalPairs);
+  let cards=shuffle([...selected,...selected]);
 
   foundPairs=0; firstCard=null; secondCard=null; lock=false;
+  tempo=tempoPorFase; if(modoDificil) tempo=Math.floor(tempo*0.6);
+  document.getElementById("timer").innerText=tempo;
+  document.getElementById("nivel").innerText=nivelAtual;
+  document.getElementById("fase").innerText=faseAtual+1;
+  document.getElementById("chances").innerText=3-errosTempo;
+
+  const game = document.getElementById("game");
+  game.innerHTML="";
+  game.style.gridTemplateColumns=`repeat(${size},1fr)`;
 
   cards.forEach(symbol=>{
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `<div class="front">${symbol}</div><div class="back"></div>`;
-    card.onclick = () => flipCard(card);
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`<div class="front">${symbol}</div><div class="back"></div>`;
+    card.onclick=()=>flipCard(card);
     game.appendChild(card);
   });
 
-  // Nível 2 mostra as cartas viradas por 2s
-  if(nivelAtual===2){
-    const todas = document.querySelectorAll(".card");
-    todas.forEach(c => c.classList.add("flipped"));
-    lock=true;
-    setTimeout(()=>{
-      todas.forEach(c => c.classList.remove("flipped"));
-      lock=false;
-      iniciarTempo();
-    },2000);
-  } else {
-    iniciarTempo();
-  }
+  iniciarTempo();
 }
 
 // ===== VIRAR CARTA =====
@@ -269,19 +222,15 @@ function flipCard(card){
   secondCard=card;
 
   let s1=firstCard.innerText, s2=secondCard.innerText;
-
   if(s1===s2){
     firstCard.classList.add("match");
     secondCard.classList.add("match");
     foundPairs++; firstCard=null; secondCard=null;
-
     if(foundPairs===totalPairs){
       clearInterval(intervalo);
-      setTimeout(()=>{
-        fase++; if(fase>4){fase=1;nivelAtual++;}
-        if(nivelAtual>4){alert("🎉 Zerou!"); nivelAtual=1;}
-        startGame();
-      },500);
+      faseAtual++;
+      if(faseAtual>=6){ alert("🎉 Você completou todas as fases!"); faseAtual=0; nivelAtual=1; }
+      startGame();
     }
   } else {
     lock=true;
@@ -302,52 +251,75 @@ function shuffle(arr){
   return arr;
 }
 
+// ===== NÍVEL 2 MATEMÁTICAS =====
+let nivel2={level:1,maxLevel:5,time:5};
+function startNivel2(){
+  const game=document.getElementById("game");
+  game.innerHTML="";
+  document.getElementById("nivel").innerText=nivelAtual;
+  document.getElementById("fase").innerText=nivel2.level;
+
+  const a=Math.floor(Math.random()*200);
+  const b=Math.floor(Math.random()*200);
+  const certo=a+b;
+  let err1=certo+Math.floor(Math.random()*10+1);
+  let err2=certo-Math.floor(Math.random()*10+1);
+  const opcoes=shuffle([certo,err1,err2]);
+
+  const pergunta=document.createElement("div");
+  pergunta.textContent=`Quanto é ${a} + ${b}?`;
+  pergunta.style.marginBottom="15px";
+  pergunta.style.fontSize="24px";
+  game.appendChild(pergunta);
+
+  opcoes.forEach(o=>{
+    const btn=document.createElement("button");
+    btn.innerText=o;
+    btn.style.margin="5px";
+    btn.onclick=()=>{
+      if(o===certo){
+        nivel2.level++;
+        if(nivel2.level>nivel2.maxLevel){
+          alert("🎉 Você completou o nível 2!");
+          nivel2.level=1; nivelAtual=1; faseAtual=0;
+          startGame();
+        } else startNivel2();
+      } else {
+        alert("❌ Errou! Tente de novo");
+        startNivel2();
+      }
+    }
+    game.appendChild(btn);
+  });
+
+  // Contador regressivo
+  let timeLeft=nivel2.time;
+  const timer=document.getElementById("timer");
+  timer.innerText=timeLeft;
+  clearInterval(intervalo);
+  intervalo=setInterval(()=>{
+    timeLeft--;
+    timer.innerText=timeLeft;
+    if(timeLeft<=0){
+      clearInterval(intervalo);
+      alert("⏰ Tempo esgotado!");
+      nivel2.level=1; faseAtual=0; nivelAtual=1;
+      startGame();
+    }
+  },1000);
+}
+
 // ===== AUTOLOAD =====
 window.onload=()=>{
   let save=localStorage.getItem("memoryProSave");
   if(save){
     let dados=JSON.parse(save);
-    nivelAtual=dados.nivel; fase=dados.fase; modo=dados.modo;
+    nivelAtual=dados.nivel; faseAtual=dados.fase; errosTempo=dados.errosTempo||0;
     document.getElementById("loginDiv").style.display="none";
     document.getElementById("gameDiv").style.display="block";
     startGame();
   }
 };
-
-// ===== PWA INSTALL =====
-let deferredPrompt;
-const btnInstall = document.createElement("button");
-btnInstall.id = "btnInstall";
-btnInstall.style.display="none";
-btnInstall.innerText = "📲 Instalar App";
-document.body.appendChild(btnInstall);
-
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  btnInstall.style.display = "block";
-});
-
-btnInstall.addEventListener("click", async () => {
-  if(deferredPrompt){
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log("Resultado da instalação:", outcome);
-    deferredPrompt = null;
-    btnInstall.style.display="none";
-  }
-});
-
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js");
-}
-</script>
-</body>
-</html>
-
-<script>
-console.log("Funcionando!");
-  
 </script>
 <button id="btnInstall" style="display:none;">📲 Instalar App</button>
 <script>
@@ -358,7 +330,21 @@ window.addEventListener("beforeinstallprompt", (e) => {
   deferredPrompt = e;
   btnInstall.style.display = "block"; // mostra o botão
 });
+
+btnInstall.addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log("Resultado da instalação:", outcome);
+    deferredPrompt = null;
+    btnInstall.style.display = "none";
+  }
+});
+
+// Registrar o Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
 </script>
 </body>
 </html>
-  
