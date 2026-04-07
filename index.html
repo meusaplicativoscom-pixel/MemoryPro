@@ -127,6 +127,10 @@ let modoDificil=false;
 const ordemFases = ["frutas","esportes","emocoes","comida","animais","aleatorio"];
 const tempoPorFase = 55;
 
+// ===== NÍVEL MATEMÁTICO =====
+let nivel2 = {level:1,maxLevel:5,time:10}; // 10 segundos
+let vidasNivel2 = 3;
+
 // ===== LOGIN =====
 function login(){ 
   document.getElementById("loginDiv").style.display="none"; 
@@ -134,7 +138,10 @@ function login(){
   startGame();
 }
 function entrarVisitante(){ login(); }
-function toggleDificuldade(){ modoDificil=!modoDificil; alert(modoDificil?"🔥 Difícil ON":"🙂 Normal"); }
+function toggleDificuldade(){ 
+  modoDificil = !modoDificil; 
+  alert(modoDificil ? "🔥 Difícil ON" : "🙂 Normal"); 
+}
 
 // ===== SALVAR =====
 function salvarESair(){
@@ -179,14 +186,49 @@ function iniciarTempo(){
   },1000);
 }
 
+// ===== EMBARALHAR =====
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    let j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// ===== GERAR PERGUNTA MATEMÁTICA =====
+function gerarPergunta(tipo){
+  let a = Math.floor(Math.random()*100)+1;
+  let b = Math.floor(Math.random()*100)+1;
+  let pergunta, certo;
+
+  if(tipo==="soma"){
+    certo = a + b;
+    pergunta = `${a} + ${b}`;
+  }
+
+  if(tipo==="multiplicacao"){
+    a = Math.floor(Math.random()*20)+1;
+    b = Math.floor(Math.random()*20)+1;
+    certo = a * b;
+    pergunta = `${a} × ${b}`;
+  }
+
+  if(tipo==="divisao"){
+    b = Math.floor(Math.random()*10)+1;
+    certo = Math.floor(Math.random()*20)+1;
+    a = certo * b; // garante divisão exata
+    pergunta = `${a} ÷ ${b}`;
+  }
+
+  return {pergunta, certo};
+}
+
 // ===== INICIAR JOGO =====
 function startGame(){
-  if(nivelAtual===2){ 
-  vidasNivel2 = 3; // reseta vidas
-  document.getElementById("chances").innerText = vidasNivel2;
-  startNivel2(); 
-  return; 
-} // Nível 2 matemático
+  if(nivelAtual===2){ startNivel2(); return; }
+  if(nivelAtual===3){ startNivel3(); return; }
+  if(nivelAtual===4){ startNivel4(); return; }
+  if(nivelAtual===5){ startNivel5(); return; }
 
   // Seleção de tema
   let temaAtual = faseAtual<ordemFases.length-1 ? ordemFases[faseAtual] : null;
@@ -236,14 +278,13 @@ function flipCard(card){
       clearInterval(intervalo);
       faseAtual++;
       if(faseAtual>=6){ 
-  faseAtual=0;
-  nivelAtual++;
-
-  if(nivelAtual > 2){
-    alert("🏆 Você zerou o jogo!");
-    nivelAtual = 1;
-  }
-}
+        faseAtual=0;
+        nivelAtual++;
+        if(nivelAtual > 5){
+          alert("🏆 Você zerou o jogo!");
+          nivelAtual = 1;
+        }
+      }
       startGame();
     }
   } else {
@@ -256,19 +297,8 @@ function flipCard(card){
   }
 }
 
-// ===== EMBARALHAR =====
-function shuffle(arr){
-  for(let i=arr.length-1;i>0;i--){
-    let j=Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]]=[arr[j],arr[i]];
-  }
-  return arr;
-}
-
-// ===== NÍVEL 2 MATEMÁTICAS =====
-let nivel2={level:1,maxLevel:5,time:7};
-let vidasNivel2 = 3;
-function startNivel2(){
+// ===== NÍVEL MATEMÁTICO =====
+function iniciarNivelMatematico(tipo){
   const game=document.getElementById("game");
   game.innerHTML="";
 
@@ -276,55 +306,48 @@ function startNivel2(){
   document.getElementById("fase").innerText=nivel2.level;
   document.getElementById("chances").innerText=vidasNivel2;
 
-  const a=Math.floor(Math.random()*200);
-  const b=Math.floor(Math.random()*200);
-  const certo=a+b;
+  let dados = gerarPergunta(tipo);
+  const certo = dados.certo;
 
   let err1=certo+Math.floor(Math.random()*10+1);
   let err2=certo-Math.floor(Math.random()*10+1);
   const opcoes=shuffle([certo,err1,err2]);
 
   const pergunta=document.createElement("div");
-  pergunta.textContent=`Quanto é ${a} + ${b}?`;
-  pergunta.style.marginBottom="15px";
+  pergunta.textContent=`Quanto é ${dados.pergunta}?`;
   pergunta.style.fontSize="24px";
+  pergunta.style.marginBottom="15px";
   game.appendChild(pergunta);
 
   opcoes.forEach(o=>{
     const btn=document.createElement("button");
     btn.innerText=o;
     btn.style.margin="5px";
-
     btn.onclick=()=>{
       if(o===certo){
         nivel2.level++;
-
         if(nivel2.level>nivel2.maxLevel){
-          alert("🎉 Você completou o nível 2!");
+          alert("🎉 Nível completo!");
           nivel2.level=1;
-          nivelAtual=1;
-          faseAtual=0;
+          nivelAtual++;
           startGame();
         } else {
-          startNivel2();
+          iniciarNivelMatematico(tipo);
         }
-
       } else {
         perderVidaNivel2();
       }
-    }
-
+    };
     game.appendChild(btn);
   });
 
-  let timeLeft=nivel2.time;
-  const timer=document.getElementById("timer");
-  timer.innerText=timeLeft;
+  let timeLeft = nivel2.time;
+  document.getElementById("timer").innerText=timeLeft;
 
   clearInterval(intervalo);
   intervalo=setInterval(()=>{
     timeLeft--;
-    timer.innerText=timeLeft;
+    document.getElementById("timer").innerText=timeLeft;
 
     if(timeLeft<=0){
       clearInterval(intervalo);
@@ -333,7 +356,17 @@ function startNivel2(){
   },1000);
 }
 
-// ===== AUTOLOAD =====
+// ===== FUNÇÕES DOS NÍVEIS =====
+function startNivel2(){ iniciarNivelMatematico("soma"); }
+function startNivel3(){ iniciarNivelMatematico("divisao"); }
+function startNivel4(){ iniciarNivelMatematico("multiplicacao"); }
+function startNivel5(){
+  const tipos = ["soma","multiplicacao","divisao"];
+  const tipo = tipos[Math.floor(Math.random()*tipos.length)];
+  iniciarNivelMatematico(tipo);
+}
+
+// ===== PERDER VIDA =====
 function perderVidaNivel2(){
   vidasNivel2--;
   document.getElementById("chances").innerText = vidasNivel2;
@@ -346,9 +379,14 @@ function perderVidaNivel2(){
     startGame();
   } else {
     alert(`❌ Errou! Você ainda tem ${vidasNivel2} vida(s)`);
-    startNivel2();
+    if(nivelAtual===2) startNivel2();
+    else if(nivelAtual===3) startNivel3();
+    else if(nivelAtual===4) startNivel4();
+    else if(nivelAtual===5) startNivel5();
   }
 }
+
+// ===== AUTOLOAD =====
 window.onload=()=>{
   let save=localStorage.getItem("memoryProSave");
   if(save){
@@ -385,55 +423,18 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
-<!-- Botão Flutuante de Compartilhar -->
-<style>
-  #botaoCompartilhar {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 40%;
-    width: 30px;
-    height: 30px;
-    font-size: 24px;
-    cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    z-index: 9999;
-    transition: transform 0.2s;
-  }
-  #botaoCompartilhar:hover {
-    transform: scale(1.1);
-  }
-</style>
 
-<button id="botaoCompartilhar" title="Compartilhar">🔗</button>
 
-<script>
-  const botao = document.getElementById('botaoCompartilhar');
-  
-  botao.addEventListener('click', async () => {
-    const url = window.location.href;
-    const title = document.title;
 
-    if (navigator.share) {
-      // Usando API de Compartilhamento se suportada
-      try {
-        await navigator.share({ title, url });
-      } catch (err) {
-        console.log('Compartilhamento cancelado ou falhou', err);
-      }
-    } else {
-      // Fallback: copia o link
-      try {
-        await navigator.clipboard.writeText(url);
-        alert('Link copiado para a área de transferência!');
-      } catch (err) {
-        prompt('Copie este link:', url);
-      }
-    }
-  });
-</script>
+----OPÇÃO para colocar no HTML SÓ ESSE--
+colocar no HTML (index.html)
+-COMEÇO
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="https://i.imgur.com/jFQiZvL.jpeg">
+<meta name="theme-color" content="#1e90ff">
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <title>Player</title>
+ <style>
 </body>
 </html>
