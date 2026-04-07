@@ -181,7 +181,12 @@ function iniciarTempo(){
 
 // ===== INICIAR JOGO =====
 function startGame(){
-  if(nivelAtual===2){ startNivel2(); return; } // Nível 2 matemático
+  if(nivelAtual===2){ 
+  vidasNivel2 = 3; // reseta vidas
+  document.getElementById("chances").innerText = vidasNivel2;
+  startNivel2(); 
+  return; 
+} // Nível 2 matemático
 
   // Seleção de tema
   let temaAtual = faseAtual<ordemFases.length-1 ? ordemFases[faseAtual] : null;
@@ -262,15 +267,19 @@ function shuffle(arr){
 
 // ===== NÍVEL 2 MATEMÁTICAS =====
 let nivel2={level:1,maxLevel:5,time:5};
+let vidasNivel2 = 3;
 function startNivel2(){
   const game=document.getElementById("game");
   game.innerHTML="";
+
   document.getElementById("nivel").innerText=nivelAtual;
   document.getElementById("fase").innerText=nivel2.level;
+  document.getElementById("chances").innerText=vidasNivel2;
 
   const a=Math.floor(Math.random()*200);
   const b=Math.floor(Math.random()*200);
   const certo=a+b;
+
   let err1=certo+Math.floor(Math.random()*10+1);
   let err2=certo-Math.floor(Math.random()*10+1);
   const opcoes=shuffle([certo,err1,err2]);
@@ -285,40 +294,61 @@ function startNivel2(){
     const btn=document.createElement("button");
     btn.innerText=o;
     btn.style.margin="5px";
+
     btn.onclick=()=>{
       if(o===certo){
         nivel2.level++;
+
         if(nivel2.level>nivel2.maxLevel){
           alert("🎉 Você completou o nível 2!");
-          nivel2.level=1; nivelAtual=1; faseAtual=0;
+          nivel2.level=1;
+          nivelAtual=1;
+          faseAtual=0;
           startGame();
-        } else startNivel2();
+        } else {
+          startNivel2();
+        }
+
       } else {
-        alert("❌ Errou! Tente de novo");
-        startNivel2();
+        perderVidaNivel2();
       }
     }
+
     game.appendChild(btn);
   });
 
-  // Contador regressivo
   let timeLeft=nivel2.time;
   const timer=document.getElementById("timer");
   timer.innerText=timeLeft;
+
   clearInterval(intervalo);
   intervalo=setInterval(()=>{
     timeLeft--;
     timer.innerText=timeLeft;
+
     if(timeLeft<=0){
       clearInterval(intervalo);
-      alert("⏰ Tempo esgotado!");
-      nivel2.level=1; faseAtual=0; nivelAtual=1;
-      startGame();
+      perderVidaNivel2();
     }
   },1000);
 }
 
 // ===== AUTOLOAD =====
+function perderVidaNivel2(){
+  vidasNivel2--;
+  document.getElementById("chances").innerText = vidasNivel2;
+
+  if(vidasNivel2 <= 0){
+    alert("💀 Você perdeu todas as vidas! Reiniciando...");
+    nivel2.level = 1;
+    nivelAtual = 1;
+    faseAtual = 0;
+    startGame();
+  } else {
+    alert(`❌ Errou! Você ainda tem ${vidasNivel2} vida(s)`);
+    startNivel2();
+  }
+}
 window.onload=()=>{
   let save=localStorage.getItem("memoryProSave");
   if(save){
