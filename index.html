@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -229,7 +230,15 @@ function flipCard(card){
     if(foundPairs===totalPairs){
       clearInterval(intervalo);
       faseAtual++;
-      if(faseAtual>=6){ alert("🎉 Você completou todas as fases!"); faseAtual=0; nivelAtual=1; }
+      if(faseAtual>=6){ 
+  faseAtual=0;
+  nivelAtual++;
+
+  if(nivelAtual > 2){
+    alert("🏆 Você zerou o jogo!");
+    nivelAtual = 1;
+  }
+}
       startGame();
     }
   } else {
